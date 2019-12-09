@@ -12,6 +12,50 @@ public:
    }
 };
 
+template<class Price>
+class AssetKey
+{
+public:
+   AssetKey(int id, Price price) : id(id), price(price) {}
+   int id;
+   Price price;
+};
+
+/***
+ * A way to sort orders first by high price, then by low id
+ */
+template<class Price>
+class AssetBidKey : public AssetKey<Price>
+{
+public:
+   using AssetKey<Price>::price;
+   using AssetKey<Price>::id;
+   AssetBidKey(int id, Price price) : AssetKey<Price>(id, price) {}
+   inline bool operator<(const AssetKey<Price>& in) const
+   {
+      if (in.price == price)
+         return id < in.id;
+      return price > in.price;
+   }
+};
+
+template<class Price>
+class AssetAskKey : public AssetKey<Price>
+{
+public:
+   using AssetKey<Price>::price;
+   using AssetKey<Price>::id;
+   AssetAskKey(int id, Price price) : AssetKey<Price>(id, price) {}
+   inline bool operator<(const AssetKey<Price>& in) const
+   {
+      if (in.price == price)
+         return id < in.id;
+      return price < in.price;
+   }
+};
+
+
+
 /***
  * An order that will be possibly stored on the order book.
  * Therefore, it must be sortable by price and ID

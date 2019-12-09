@@ -38,3 +38,37 @@ BOOST_AUTO_TEST_CASE( simple_tests )
    BOOST_TEST( book.bids.size() == 0);
    BOOST_TEST( book.asks.size() == 0);
 }
+
+BOOST_AUTO_TEST_CASE( multiple_order_same_price )
+{
+   // Two assets
+   Asset a1(1);
+   Asset a2(2);
+
+   Book<int, int> book(a1, a2);
+   AssetOrder<int, int> order1(1, a2, a1, 10, 10);
+   AssetOrder<int, int> order2(2, a2, a1, 10, 10);
+   book.AddOrder(order2);
+   book.AddOrder(order1);
+   BOOST_TEST( book.bids.size() == 2);
+   // Even though I added them in the wrong order, they should come out in the correct order
+   auto bidItr = book.bids.begin();
+   auto bidKey = (*bidItr).first;
+   BOOST_TEST(bidKey.id == 1);
+   // If I add one at a higher price, it should become the first
+   AssetOrder<int, int> order3(3, a2, a1, 10, 11);
+   book.AddOrder(order3);
+   BOOST_TEST( (*book.bids.begin()).first.id == 3 );
+
+   // now check the asks
+   order1 = AssetOrder<int, int>(1, a1, a2, 10, 20);
+   order2 = AssetOrder<int, int>(2, a1, a2, 10, 20);
+   order3 = AssetOrder<int, int>(3, a1, a2, 10, 19);
+   book.AddOrder(order2);
+   book.AddOrder(order1);
+   BOOST_TEST( book.asks.size() == 2);
+   BOOST_TEST( (*book.asks.begin()).first.id == 1);
+   book.AddOrder(order3);
+   BOOST_TEST( (*book.asks.begin()).first.id == 3);
+   
+}

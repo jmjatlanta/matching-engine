@@ -9,17 +9,10 @@ class Book
 {
 public:
    Book(const Asset buying, const Asset selling) : _wantToBuy(buying), _wantToSell(selling) {}
-   std::map<Price, AssetOrder<Size, Price>> bids;
-   std::map<Price, AssetOrder<Size, Price>> asks;
-private:
-   auto getBestOffer()
-   {
-      return bids.rbegin();
-   }
-   auto getBestAsk()
-   {
-      return asks.begin();
-   }
+   // bids are sorted highest price first, then lowest id
+   std::map<AssetBidKey<Price>, AssetOrder<Size, Price> > bids;
+   // asks are sorted lowest price first, then lowest id
+   std::map<AssetAskKey<Price>, AssetOrder<Size, Price>> asks;
 public:
    /***
     * Add an order to the book
@@ -33,21 +26,21 @@ public:
       bool buying = (order.assetToBuy == _wantToSell);
       if (buying)
       {
-         auto bestAskItr = getBestAsk();
+         auto bestAskItr = asks.begin();
          while (bestAskItr != asks.end() && (*bestAskItr).second.price <= currOrder.price && currOrder.quantity > 0)
          {
-            take(asks, (*bestAskItr).second, currOrder);
-            bestAskItr = getBestAsk();
+            takeAsk( (*bestAskItr).second, currOrder);
+            bestAskItr = asks.begin();
          }
          placeOnBook(currOrder);
       }
       else
       {
-         auto bestOfferItr = getBestOffer();
-         while ( bestOfferItr != bids.rend() && (*bestOfferItr).second.price >= currOrder.price && currOrder.quantity > 0)
+         auto bestOfferItr = bids.begin();
+         while ( bestOfferItr != bids.end() && (*bestOfferItr).second.price >= currOrder.price && currOrder.quantity > 0)
          {
-            take(bids, (*bestOfferItr).second, currOrder);
-            bestOfferItr = getBestOffer();
+            takeBid( (*bestOfferItr).second, currOrder);
+            bestOfferItr = bids.begin();
          }
          // now deal with the leftover
          placeOnBook(currOrder);
@@ -56,7 +49,7 @@ public:
 private:
    Asset _wantToBuy;
    Asset _wantToSell;
-   void take(std::map<Price, AssetOrder<Size, Price>>& collection, AssetOrder<Size, Price>& bookItem, AssetOrder<Size, Price>& incomingOrder)
+   void adjustQuantities(AssetOrder<Size, Price>& bookItem, AssetOrder<Size, Price>& incomingOrder)
    {
       if (bookItem.quantity > incomingOrder.quantity)
       {
@@ -68,10 +61,18 @@ private:
          incomingOrder.quantity -= bookItem.quantity;
          bookItem.quantity = 0;
       }
+   }
+   void takeBid(AssetOrder<Size, Price>& bookItem, AssetOrder<Size, Price>& incomingOrder)
+   {
+      adjustQuantities(bookItem, incomingOrder);
       if (bookItem.quantity == 0)
-      {
-         collection.erase(bookItem.price);
-      }      
+         bids.erase(AssetBidKey<Price>(bookItem.id, bookItem.price));     
+   }
+   void takeAsk(AssetOrder<Size, Price>& bookItem, AssetOrder<Size, Price>& incomingOrder)
+   {
+      adjustQuantities(bookItem, incomingOrder);
+      if (bookItem.quantity == 0)
+         asks.erase(AssetAskKey<Price>(bookItem.id, bookItem.price));   
    }
    void placeOnBook(AssetOrder<Size, Price>& order)
    {
@@ -80,11 +81,11 @@ private:
          bool buying = (order.assetToBuy == _wantToSell);
          if (buying)
          {
-            bids.insert({order.price, order});
+            bids.insert({AssetBidKey<Price>(order.id, order.price), order});
          }
          else
          {
-            asks.insert({order.price, order});
+            asks.insert({AssetAskKey<Price>(order.id, order.price), order});
          }
       }
    }
