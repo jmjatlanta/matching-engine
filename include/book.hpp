@@ -1,5 +1,6 @@
 #include <set>
 #include <asset.hpp>
+#include "Allocator.h"
 
 /***
  * A representation of an order book
@@ -10,9 +11,16 @@ class Book
 public:
    Book(const Asset buying, const Asset selling) : _wantToBuy(buying), _wantToSell(selling) {}
    // bids are sorted highest price first, then lowest id
+   /*
+   std::map<AssetBidKey<Price>, AssetOrder<Size, Price>, std::less<AssetBidKey<Price> >, 
+        Moya::Allocator<std::pair<AssetBidKey<Price>, AssetOrder<Size,Price> > > > bids;
+   // asks are sorted lowest price first, then lowest id
+   std::map<AssetAskKey<Price>, AssetOrder<Size, Price>, std::less<AssetAskKey<Price> >,
+        Moya::Allocator<std::pair<AssetAskKey<Price>, AssetOrder<Size,Price> > > > asks;
+   */
    std::map<AssetBidKey<Price>, AssetOrder<Size, Price> > bids;
    // asks are sorted lowest price first, then lowest id
-   std::map<AssetAskKey<Price>, AssetOrder<Size, Price>> asks;
+   std::map<AssetAskKey<Price>, AssetOrder<Size, Price> > asks;
 public:
    /***
     * Add an order to the book
@@ -45,6 +53,7 @@ public:
          // now deal with the leftover
          placeOnBook(currOrder);
       }
+      return true;
    }
 private:
    Asset _wantToBuy;

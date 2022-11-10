@@ -1,0 +1,3 @@
+[submodule "thirdparty/Allocator"]
+	path = thirdparty/Allocator
+	url = https://github.com/moya-lang/Allocator
